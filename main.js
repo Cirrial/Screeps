@@ -2,19 +2,20 @@ var builder = require('builder');
 var harvester = require('harvester');
 var guard = require('guard');
 
+var actions = {
+    builder: builder,
+    harvester: harvester,
+    guard: guard
+};
+
 module.exports.loop = function () {
 
+    // spawning behaviour
+
+
+    // action behaviour
     for(var name in Game.creeps) {
         var creep = Game.creeps[name];
-
-        if(creep.memory.role == 'harvester') {
-            harvester(creep);
-        }
-        if(creep.memory.role == 'builder') {
-            builder(creep);
-        }
-        if(creep.memory.role == 'guard') {
-            guard(creep);
-        }
+        actions[creep.memory.role](creep);
     }
 }
