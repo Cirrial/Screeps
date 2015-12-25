@@ -1,10 +1,9 @@
 module.exports = function (creep) {
 
-    var spawner = Game.spawns.CirrSpawner;
-
     var targets = creep.room.find(FIND_CONSTRUCTION_SITES);
+    var spawner = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
     if(targets.length) {
-        if(creep.carry.energy == 0) {
+        if(spawner && creep.carry.energy == 0) {
             if(spawner.transferEnergy(creep) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(spawner);
             }
@@ -14,7 +13,7 @@ module.exports = function (creep) {
             }
         }
     } else {
-        if(creep.carry.energy > 0) {
+        if(creep.carry.energy > 0 && spawner) {
             if(creep.transfer(spawner, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(spawner);
             }
