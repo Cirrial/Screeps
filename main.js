@@ -5,6 +5,7 @@ var builder = require('builder');
 var harvester = require('harvester');
 var guard = require('guard');
 var spawner = require('spawner');
+var healer = require('healer');
 
 module.exports.loop = function () {
 
@@ -27,6 +28,9 @@ module.exports.loop = function () {
             case 'guard':
                 guard(creep);
                 break;
+            case 'healer':
+                healer(creep);
+                break;
         }
     }
-}
+};

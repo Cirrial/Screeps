@@ -23,6 +23,7 @@ module.exports = function (spawn) {
         spawnCount ++;
     }
     var idealHarvesters = spawnCount * 2;
+    var idealHealers = Math.ceil(survey.guard / 2);
     if(survey.harvester < idealHarvesters && canSpawn) {
         spawn.createUnit(null, designs.harvester.body, 'harvester');
         canSpawn = false;
@@ -31,8 +32,12 @@ module.exports = function (spawn) {
         spawn.createUnit(null, designs.builder.body, 'builder');
         canSpawn = false;
     }
-    if(survey.guard < 6 && canSpawn) {
+    if(survey.healer < idealHealers && canSpawn) {
+        spawn.createUnit(null, designs.healer.body, 'healer');
+        canSpawn = false;
+    }
+    if(canSpawn) {
         spawn.createUnit(null, designs.guard.body, 'guard');
         canSpawn = false;
     }
-}
+};

@@ -9,5 +9,10 @@ module.exports = function (creep) {
         if(creep.attack(targets[0]) == ERR_NOT_IN_RANGE) {
             creep.moveTo(targets[0]);
         }
+    } else {
+        var nearestSpawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+        if(!creep.pos.isNearTo(nearestSpawn)) {
+            creep.moveTo(nearestSpawn);
+        }
     }
 }

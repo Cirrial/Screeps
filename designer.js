@@ -7,7 +7,10 @@ module.exports = function() {
             body: [WORK, CARRY, MOVE]
         },
         guard: {
-            body: [ATTACK, MOVE, MOVE]
+            body: [MOVE, MOVE, ATTACK]
+        },
+        healer: {
+            body: [MOVE, HEAL]
         }
     };
 
