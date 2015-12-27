@@ -31,12 +31,12 @@ module.exports = function (spawn) {
     //    spawn.createUnit(null, designs.harvester.body, 'harvester');
     //    canSpawn = false;
     //}
-    if(survey.miner < idealMiners && canSpawn) {
-        spawn.createUnit(null, designs.miner.body, 'miner');
-        canSpawn = false;
-    }
     if(survey.courier < idealCouriers && canSpawn) {
         spawn.createUnit(null, designs.courier.body, 'courier');
+        canSpawn = false;
+    }
+    if(survey.miner < idealMiners && canSpawn) {
+        spawn.createUnit(null, designs.miner.body, 'miner');
         canSpawn = false;
     }
     if(survey.builder < spawnCount && canSpawn && spawn.room.find(FIND_CONSTRUCTION_SITES).length > 0) {

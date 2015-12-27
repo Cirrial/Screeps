@@ -2,7 +2,7 @@ module.exports = function (creep) {
 
     var closestEnergy = creep.pos.findClosestByRange(FIND_DROPPED_ENERGY);
 
-    if(creep.carry.energy < creep.carryCapacity && closestEnergy) {
+    if(creep.carry.energy == 0 && closestEnergy) {
         // collect
         if(creep.pos.isNearTo(closestEnergy)) {
             creep.pickup(closestEnergy);
