@@ -22,13 +22,24 @@ module.exports = function (spawn) {
     for(var i in Game.spawns) {
         spawnCount ++;
     }
-    var idealHarvesters = spawnCount * 2;
+    //var idealHarvesters = spawnCount * 2;
+    var idealBuilders = spawnCount;
+    var idealMiners = spawnCount * 2;
+    var idealCouriers = Math.ceil(survey.miner * 1.5);
     var idealHealers = Math.ceil(survey.guard / 2);
-    if(survey.harvester < idealHarvesters && canSpawn) {
-        spawn.createUnit(null, designs.harvester.body, 'harvester');
+    //if(survey.harvester < idealHarvesters && canSpawn) {
+    //    spawn.createUnit(null, designs.harvester.body, 'harvester');
+    //    canSpawn = false;
+    //}
+    if(survey.miner < idealMiners && canSpawn) {
+        spawn.createUnit(null, designs.miner.body, 'miner');
         canSpawn = false;
     }
-    if(survey.builder < 1 && canSpawn && spawn.room.find(FIND_CONSTRUCTION_SITES).length > 0) {
+    if(survey.courier < idealCouriers && canSpawn) {
+        spawn.createUnit(null, designs.courier.body, 'courier');
+        canSpawn = false;
+    }
+    if(survey.builder < spawnCount && canSpawn && spawn.room.find(FIND_CONSTRUCTION_SITES).length > 0) {
         spawn.createUnit(null, designs.builder.body, 'builder');
         canSpawn = false;
     }

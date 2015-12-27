@@ -1,5 +1,5 @@
 module.exports = function() {
-    var designs = {
+    return {
         builder: {
             body: [WORK, WORK, CARRY, MOVE]
         },
@@ -11,9 +11,13 @@ module.exports = function() {
         },
         healer: {
             body: [MOVE, HEAL]
+        },
+        miner: {
+            body: [MOVE, WORK]
+        },
+        courier: {
+            body: [MOVE, CARRY, MOVE]
         }
     };
-
-    return designs;
 };
 
