@@ -4,7 +4,7 @@ module.exports = function (creep) {
 
     if(creep.carry.energy < creep.carryCapacity && closestEnergy) {
         // collect
-        if(creep.isNearTo(closestEnergy)) {
+        if(creep.pos.isNearTo(closestEnergy)) {
             creep.pickup(closestEnergy);
         } else {
             creep.moveTo(closestEnergy);
@@ -12,7 +12,7 @@ module.exports = function (creep) {
     } else {
         // dropoff
         var spawner = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if(creep.isNearTo(spawner)) {
+        if(creep.pos.isNearTo(spawner)) {
             creep.transfer(spawner, RESOURCE_ENERGY);
         } else {
             creep.moveTo(spawner);

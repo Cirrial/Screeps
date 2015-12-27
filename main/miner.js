@@ -5,7 +5,7 @@ module.exports = function (creep) {
     }});
     var source = creep.pos.findClosestByRange(allSources);
 
-    if(creep.isNearTo(source)) {
+    if(creep.pos.isNearTo(source)) {
         creep.harvest(source);
     } else {
         creep.moveTo(source);
