@@ -24,8 +24,8 @@ module.exports = function (spawn) {
     }
     //var idealHarvesters = spawnCount * 2;
     var idealBuilders = spawnCount;
-    var idealMiners = spawnCount * 2;
     var idealCouriers = Math.ceil(survey.miner * 1.5);
+    var idealMiners = idealCouriers + 1;
     var idealHealers = Math.ceil(survey.guard / 2);
     //if(survey.harvester < idealHarvesters && canSpawn) {
     //    spawn.createUnit(null, designs.harvester.body, 'harvester');
