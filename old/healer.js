@@ -15,9 +15,16 @@ module.exports = function(creep) {
             }
         }
     } else {
-        var closestSpawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
-        if(!creep.pos.inRangeTo(closestSpawn, 2)) {
-            creep.moveTo(closestSpawn);
+        var nearestFlag = creep.pos.findClosestByRange(FIND_FLAGS);
+        if(nearestFlag) {
+            if(!creep.pos.isNearTo(nearestFlag)) {
+                creep.moveTo(nearestFlag);
+            }
+        } else {
+            var nearestSpawn = creep.pos.findClosestByRange(FIND_MY_SPAWNS);
+            if(!creep.pos.isNearTo(nearestSpawn)) {
+                creep.moveTo(nearestSpawn);
+            }
         }
     }
 };

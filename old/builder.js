@@ -9,8 +9,14 @@ module.exports = function (creep) {
     // repair priority, build secondary
     if(damagedBuildings.length > 0) {
         var closestDamaged = creep.pos.findClosestByRange(damagedBuildings);
-        if(creep.repair(closestDamaged) == ERR_NOT_IN_RANGE) {
-            creep.moveTo(closestDamaged);
+        if(spawner && creep.carry.energy == 0) {
+            if(spawner.transferEnergy(creep) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(spawner);
+            }
+        } else {
+            if(creep.repair(closestDamaged) == ERR_NOT_IN_RANGE) {
+                creep.moveTo(closestDamaged);
+            }
         }
     } else if(buildSites.length > 0) {
         if(spawner && creep.carry.energy == 0) {

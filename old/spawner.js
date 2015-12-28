@@ -23,9 +23,10 @@ module.exports = function (spawn) {
         spawnCount ++;
     }
     //var idealHarvesters = spawnCount * 2;
-    var idealBuilders = spawnCount;
-    var idealCouriers = Math.ceil(survey.miner * 1.5);
-    var idealMiners = idealCouriers + 1;
+    var sites = spawn.room.find(FIND_CONSTRUCTION_SITES).length;
+    var idealBuilders = Math.floor(sites / 5) + 1;
+    var idealCouriers = Math.floor(survey.miner * 1.5);
+    var idealMiners = Math.min(idealCouriers + 1, spawnCount * 2);
     var idealHealers = Math.ceil(survey.guard / 2);
     //if(survey.harvester < idealHarvesters && canSpawn) {
     //    spawn.createUnit(null, designs.harvester.body, 'harvester');
@@ -39,7 +40,7 @@ module.exports = function (spawn) {
         spawn.createUnit(null, designs.miner.body, 'miner');
         canSpawn = false;
     }
-    if(survey.builder < spawnCount && canSpawn && spawn.room.find(FIND_CONSTRUCTION_SITES).length > 0) {
+    if(survey.builder < spawnCount && canSpawn) {
         spawn.createUnit(null, designs.builder.body, 'builder');
         canSpawn = false;
     }

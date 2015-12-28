@@ -1,3 +1,5 @@
+var Memory = {};
+
 /*
  *************************
  * Result Code Constants *
