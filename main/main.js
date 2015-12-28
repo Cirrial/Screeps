@@ -27,22 +27,18 @@ var nameAppendices = [
     'Zulu'
 ];
 
-function generateName(caste, num) {
+function generateName(baseName, num) {
     var suffix = nameAppendices[num % nameAppendices.length];
     while(num > nameAppendices.length) {
         num -= nameAppendices.length;
         suffix = suffix + "-" + nameAppendices[num % nameAppendices.length];
     }
-    return bodyTypes[caste].name + " " + suffix;
+    return baseName + " " + suffix;
 }
 
-//function orderWeighting(creep, jobType) {
-//    return creep.memory.jobs.length - creep.memory.jobs.indexOf(jobType);
-//}
+var jobBehaviours = {};
 
-var jobs = {};
-
-jobs.mine = {
+jobBehaviours.mine = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.rooms) {
@@ -67,16 +63,19 @@ jobs.mine = {
         }
     },
     finished: function(creep, target) {
-        return false;
+        return (target === null);
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(WORK) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(room, target) {
         var priority = 0;
-        var name;
+        var name, index;
 
         for(name in Game.spawns) {
             if(Game.spawns.hasOwnProperty(name)) {
                 var spawn = Game.spawns[name];
-                priority = (50 - spawn.pos.getRangeTo(target)) * target.energy;
+                priority = (100 - spawn.pos.getRangeTo(target)) * target.energy;
             }
         }
 
@@ -96,10 +95,25 @@ jobs.mine = {
                 return i.owner.username != 'Source Keeper';
             }
         });
-        for(var index in sourceKeepers) {
+        for(index in sourceKeepers) {
             if(sourceKeepers.hasOwnProperty(index)) {
-                var sourceKeeper = sourceKeeper[index];
+                var sourceKeeper = sourceKeepers[index];
                 if(sourceKeeper.pos.inRangeTo(target.pos, 15)) {
+                    priority = 0;
+                }
+            }
+        }
+
+        // set priority to 0 if there's a source keeper lair (15 tiles)
+        var sourceKeeperLairs = room.find(FIND_STRUCTURES, {
+            filter: function(i) {
+                return i.structureType === STRUCTURE_KEEPER_LAIR;
+            }
+        });
+        for(index in sourceKeeperLairs) {
+            if(sourceKeeperLairs.hasOwnProperty(index)) {
+                var sourceKeeperLair = sourceKeeperLairs[index];
+                if(sourceKeeperLair.pos.inRangeTo(target.pos, 15)) {
                     priority = 0;
                 }
             }
@@ -109,7 +123,7 @@ jobs.mine = {
     }
 };
 
-jobs.collect = {
+jobBehaviours.collect = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.rooms) {
@@ -120,7 +134,9 @@ jobs.collect = {
                     for(var resourceIndex in resources) {
                         if(resources.hasOwnProperty(resourceIndex)) {
                             var resource = resources[resourceIndex];
-                            jobs.push(['collect-' + resource.id, resource.id, 'collect', this.priority(resource)]);
+                            for(var i = 0; i < resource.amount; i += 50) {
+                                jobs.push(['collect-' + i + "-" + resource.id, resource.id, 'collect', this.priority(resource)]);
+                            }
                         }
                     }
                 }
@@ -154,7 +170,10 @@ jobs.collect = {
         }
     },
     finished: function(creep, target) {
-        return !(target === null);
+        return (target === null);
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(CARRY) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
         var priority = 0;
@@ -162,7 +181,7 @@ jobs.collect = {
         for(var name in Game.spawns) {
             if(Game.spawns.hasOwnProperty(name)) {
                 var spawn = Game.spawns[name];
-                priority = (50 - spawn.pos.getRangeTo(target)) * target.amount;
+                priority = (100 - spawn.pos.getRangeTo(target)) * target.amount;
             }
         }
 
@@ -170,7 +189,7 @@ jobs.collect = {
     }
 };
 
-jobs.heal = {
+jobBehaviours.heal = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.rooms) {
@@ -202,14 +221,17 @@ jobs.heal = {
         }
     },
     finished: function(creep, target) {
-        return target.hits >= target.hitsMax;
+        return target.hits >= target.hitsMax || (target === null);
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(HEAL) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
         return (target.hitsMax - target.hits) * 10;
     }
 };
 
-jobs.repair = {
+jobBehaviours.repair = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.rooms) {
@@ -252,14 +274,17 @@ jobs.repair = {
         }
     },
     finished: function(creep, target) {
-        return target.hits >= target.hitsMax;
+        return target.hits >= target.hitsMax || (target === null);
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(WORK) * creep.getActiveBodyParts(CARRY) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
         return (target.hitsMax - target.hits) * 100;
     }
 };
 
-jobs.build = {
+jobBehaviours.build = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.rooms) {
@@ -285,7 +310,7 @@ jobs.build = {
                 creep.moveTo(spawner);
             }
         } else {
-            if(creep.pos.isNearTo(target)) {
+            if(creep.pos.inRangeTo(target.pos, 3)) {
                 creep.build(target);
             } else {
                 creep.moveTo(target);
@@ -293,14 +318,17 @@ jobs.build = {
         }
     },
     finished: function(creep, target) {
-        return target.progress >= target.progressTotal;
+        return target === null || target.progress >= target.progressTotal;
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(WORK) * creep.getActiveBodyParts(CARRY) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
         return (target.progressTotal - target.progress) * 10;
     }
 };
 
-jobs.attack = {
+jobBehaviours.attack = {
     listAll: function() {
         var jobs = [];
         var hostiles = [];
@@ -334,17 +362,24 @@ jobs.attack = {
         }
     },
     finished: function(creep, target) {
-        return target.hits <= 0;
+        return target.hits <= 0 || target === null;
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(ATTACK) * creep.getActiveBodyParts(RANGED_ATTACK) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
-        var enemyHealParts = target.getActiveBodyParts(HEAL);
-        var enemyRangedAttackParts = target.getActiveBodyParts(RANGED_ATTACK);
-        var enemyAttackParts = target.getActiveBodyParts(ATTACK);
-        return (enemyHealParts * 3 + enemyRangedAttackParts * 2 + enemyAttackParts) * 100 + target.hits;
+        var priority = 0;
+        if(target.getActiveBodyParts) {
+            var enemyHealParts = target.getActiveBodyParts(HEAL);
+            var enemyRangedAttackParts = target.getActiveBodyParts(RANGED_ATTACK);
+            var enemyAttackParts = target.getActiveBodyParts(ATTACK);
+            priority = (enemyHealParts * 3 + enemyRangedAttackParts * 2 + enemyAttackParts) * 100 + target.hits
+        }
+        return 0;
     }
 };
 
-jobs.guard = {
+jobBehaviours.guard = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.flags) {
@@ -366,7 +401,10 @@ jobs.guard = {
         creep.moveTo(target);
     },
     finished: function(creep, target) {
-        return creep.pos.isNearTo(target);
+        return creep.pos.isNearTo(target) || target === null;
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(ATTACK) * creep.getActiveBodyParts(RANGED_ATTACK) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
         var nearCreeps = 0;
@@ -382,7 +420,7 @@ jobs.guard = {
     }
 };
 
-jobs.control = {
+jobBehaviours.control = {
     listAll: function() {
         var jobs = [];
         for(var name in Game.rooms) {
@@ -410,10 +448,14 @@ jobs.control = {
         }
     },
     finished: function(creep, target) {
-        return target.progress >= target.progressTotal;
+        return target.progress >= target.progressTotal || target === null;
+    },
+    suitability: function(creep, target) {
+        return creep.getActiveBodyParts(MOVE) * creep.getActiveBodyParts(WORK) * creep.getActiveBodyParts(CARRY) * (100 - creep.pos.getRangeTo(target.pos));
     },
     priority: function(target) {
-        return ((target.progressTotal - target.progress) * 10) + Math.max(0, (20000 - (target.ticksToDowngrade) * 0.01));
+        return 10;
+        //return ((target.progressTotal - target.progress) * 10) + Math.max(0, (20000 - (target.ticksToDowngrade) * 0.01));
     }
 };
 
@@ -440,8 +482,8 @@ var bodyTypes = {
     fixer: {
         body: [WORK, CARRY, MOVE],
         cost: 200,
-        name: 'Pumper',
-        jobs: ['repair', 'build', 'control']
+        name: 'Maker',
+        jobs: ['build', 'repair', 'control']
     },
     scout: {
         body: [TOUGH, ATTACK, MOVE, MOVE],
@@ -454,49 +496,82 @@ var bodyTypes = {
 
 module.exports.loop = function() {
 
-    var creep, creepName, jobData;
+    var creep, creepName, jobData, jobIndex, job;
 
     // determine the jobs that need to be done
     // FORMAT:
     // [job id, target id, job type, priority]
     var currentJobs = [];
-    for(var jobName in jobs) {
-        if(jobs.hasOwnProperty(jobName)) {
-            jobData = jobs[jobName];
-            currentJobs.push(jobData.listAll.call(jobData));
+    for(var jobName in jobBehaviours) {
+        if(jobBehaviours.hasOwnProperty(jobName)) {
+            jobData = jobBehaviours[jobName];
+            var jobList = jobData.listAll.call(jobData);
+            for(var index in jobList) {
+                if(jobList.hasOwnProperty(index)) {
+                    currentJobs.push(jobList[index]);
+                }
+            }
         }
     }
 
     // sort them by priority
     currentJobs.sort(function(a, b) {
-        return a[3] - b[3];
+        return b[3] - a[3];
     });
-
 
     // for each creep:
     // determine what job the creep is doing
-    // determine if they've finished, to clear the job
-    // otherwise run it
+    // determine if they've finished
+    // if yes, give them a new job
+    // otherwise, run the job
     // FORMAT:
     // {id, type, target}
     var activeJobs = {};
-    var idleCreepsList = [];
     var numCreeps = 0;
+
+    var assignBestJob = function(creep, currentJobs) {
+        var bestJob = null;
+        var bestValue = 0;
+        for(var jobIndex in currentJobs) {
+            if(currentJobs.hasOwnProperty(jobIndex)) {
+                var job = currentJobs[jobIndex];
+                if(!activeJobs[job[0]] && job[3] > 0) {
+                    var relevance = job[3] * jobBehaviours[job[2]].suitability(creep, Game.getObjectById(job[1]));
+                    if(relevance > bestValue) {
+                        bestValue = relevance;
+                        bestJob = job;
+                    }
+                }
+            }
+        }
+        if(bestJob) {
+            // assign creep
+            creep.memory.activeJob = {
+                id: job[0],
+                type: job[2],
+                target: job[1]
+            };
+            creep.say(job[2] + "!");
+        } else {
+            creep.memory.activeJob = null;
+        }
+    };
+
     for(creepName in Game.creeps) {
         if(Game.creeps.hasOwnProperty(creepName)) {
             creep = Game.creeps[creepName];
             var creepJob = creep.memory.activeJob;
             if(creepJob) {
-                if(jobs[creepJob.type].finished(creep, Game.getObjectById(creepJob.target))) {
-                    creep.say("Finished " + creepJob.type + ".");
-                    creep.memory.activeJob = null;
-                    idleCreepsList.push(creepName);
+                if(jobBehaviours[creepJob.type].finished(creep, Game.getObjectById(creepJob.target))) {
+                    // assign new job
+                    assignBestJob(creep, currentJobs);
                 } else {
                     activeJobs[creepJob.id] = creepJob;
-                    jobs[creepJob.type].run(creep, Game.getObjectById(creepJob.target));
+                    jobBehaviours[creepJob.type].run(creep, Game.getObjectById(creepJob.target));
                 }
             } else {
-                idleCreepsList.push(creepName);
+                // assign new job
+                assignBestJob(creep, currentJobs);
             }
         }
         numCreeps++; // might as well count here
@@ -504,67 +579,44 @@ module.exports.loop = function() {
 
     // for each job:
     // check if the job isn't being done already and is of any value
-    // determine who can do the job or if a new unit needs to be made to fulfil it
-    // if the unit is not busy and can do the job, make them do it
-    // if no units can do the job:
+    // the first job found that isn't being done is the most important job not being done
     // if there's a free spawner, spawn the unit
     // else do nothing
-    for(var jobIndex in currentJobs) {
+    var spawnersInUse = [];
+    for(jobIndex in currentJobs) {
         if(currentJobs.hasOwnProperty(jobIndex)) {
-            var job = currentJobs[jobIndex];
+            job = currentJobs[jobIndex];
             if(!activeJobs[job[0]] && job[3] > 0) {
-                // job isn't being done
-                var assignedCreepName = null;
-                for(var idleCreepIndex in idleCreepsList) {
-                    if(idleCreepsList.hasOwnProperty(idleCreepIndex) && !assignedCreepName) {
-                        creep = idleCreepsList[idleCreepIndex];
-                        jobData = jobs[job[2]];
-                        if(creep.memory.jobs.indexOf(jobData.type) !== -1) {
-                            // assign creep
-                            assignedCreepName = creep.name;
-                            creep.memory.activeJob = {
-                                id: job[0],
-                                type: job[2],
-                                target: job[1]
-                            };
-                            creep.say("Starting " + job[2] + " with target " + job[1] + ".");
+                // determine the best creep type to spawn
+                var validCreepTypes = [];
+                for(var typeName in bodyTypes) {
+                    if(bodyTypes.hasOwnProperty(typeName)) {
+                        var bodyTypeData = bodyTypes[typeName];
+                        if(bodyTypeData.jobs.indexOf(job[2]) !== -1) {
+                            validCreepTypes.push([typeName, bodyTypeData.cost]);
                         }
                     }
                 }
-                // if the job has been assigned, remove creep from idle list, otherwise spawn a relevant creep
-                if(assignedCreepName) {
-                    idleCreepsList.splice(idleCreepsList.indexOf(assignedCreepName), 1);
-                } else {
-                    // determine the best creep type to spawn
-                    var validCreepTypes = [];
-                    for(var typeName in bodyTypes) {
-                        if(bodyTypes.hasOwnProperty(typeName)) {
-                            var bodyTypeData = bodyTypes[typeName];
-                            if(bodyTypeData.jobs.indexOf(job[2]) !== -1) {
-                                validCreepTypes.push([typeName, bodyTypeData.cost]);
-                            }
-                        }
-                    }
-                    // sort list by cost
-                    validCreepTypes.sort(function(a, b) {
-                        return b[1] - a[1];
-                    });
+                // sort list by cost
+                validCreepTypes.sort(function(a, b) {
+                    return b[1] - a[1];
+                });
 
-                    // if an appropriate design exists (it SHOULD)
-                    if(validCreepTypes.length) {
-                        var selectedCreepType = validCreepTypes[0];
-                        // lazy reuse, cirr, LAZY
-                        creepName = generateName(selectedCreepType, numCreeps + 1);
+                // if an appropriate design exists (it SHOULD)
+                if(validCreepTypes.length) {
+                    var selectedCreepType = validCreepTypes[0][0];
+                    // lazy reuse, cirr, LAZY
+                    creepName = generateName(bodyTypes[selectedCreepType].name, numCreeps);
 
-                        // attempt to spawn it
-                        var spawning = false;
-                        for(var spawnName in Game.spawns) {
-                            if(Game.spawns.hasOwnProperty(spawnName)) {
-                                var spawn = Game.spawns[spawnName];
-                                if(!spawning && spawn.canCreateCreep(bodyTypes[selectedCreepType].body, spawnName)) {
-                                    spawn.createCreep(bodyTypes[selectedCreepType].body, creepName, {jobs: bodyTypes[selectedCreepType].jobs});
-                                    spawning = true;
-                                }
+                    // attempt to spawn it
+                    var spawning = false;
+                    for(var spawnName in Game.spawns) {
+                        if(Game.spawns.hasOwnProperty(spawnName)) {
+                            var spawn = Game.spawns[spawnName];
+                            if(!spawning && spawnersInUse.indexOf(spawn) === -1 && (spawn.canCreateCreep(bodyTypes[selectedCreepType].body, spawnName) === OK)) {
+                                spawn.createCreep(bodyTypes[selectedCreepType].body, creepName, {jobs: bodyTypes[selectedCreepType].jobs});
+                                spawning = true;
+                                spawnersInUse.push(spawn);
                             }
                         }
                     }
